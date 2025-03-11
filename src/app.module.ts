@@ -13,7 +13,6 @@ import { SCPController } from './scp/scp.controller';
 import { ComcService } from './comc/comc.service';
 import { ComcController } from './comc/comc.controller';
 import { ComcSalePrices } from './comc/comc-sales-prices.entity';
-import { DealsController } from './deals/deals.controller';
 import { EbaySearchResult } from './ebay/ebay-search-result.entity';
 
 @Module({
@@ -41,7 +40,6 @@ import { EbaySearchResult } from './ebay/ebay-search-result.entity';
     CardsController,
     SCPController,
     ComcController,
-    DealsController,
   ],
   providers: [AppService, EbayService, CardsService, SCPService, ComcService],
 })
