@@ -11,6 +11,8 @@ async function bootstrap() {
     configService.get<string>('PRODUCTION_FRONTEND_URL'),
   ];
 
+  console.log('allowedOrigins', JSON.stringify(allowedOrigins));
+
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin || allowedOrigins.includes(origin)) {
