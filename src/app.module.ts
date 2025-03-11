@@ -22,16 +22,20 @@ import { EbaySearchResult } from './ebay/ebay-search-result.entity';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'mysql',
-        host: configService.get<string>('DB_HOST'),
-        port: configService.get<number>('DB_PORT'),
-        username: configService.get<string>('DB_USER'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_NAME'),
-        entities: [Card, ComcSalePrices, EbaySearchResult],
-        synchronize: true, // Set to false in production
-      }),
+      useFactory: (configService: ConfigService) => {
+        console.log('DB_HOST: ' + configService.get<string>('DB_HOST'));
+        console.log('DB_PORT: ' + configService.get<string>('DB_PORT'));
+        return {
+          type: 'mysql',
+          host: configService.get<string>('DB_HOST'),
+          port: configService.get<number>('DB_PORT'),
+          username: configService.get<string>('DB_USER'),
+          password: configService.get<string>('DB_PASSWORD'),
+          database: configService.get<string>('DB_NAME'),
+          entities: [Card, ComcSalePrices, EbaySearchResult],
+          synchronize: true, // Set to false in production
+        };
+      },
     }),
   ],
   controllers: [
