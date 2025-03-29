@@ -18,8 +18,18 @@ export class CardsService {
     });
   }
 
-  createCard(issue: string, cardNumber: string, year: number): Promise<Card> {
-    const user = this.cardsRepository.create({ issue, cardNumber, year });
+  createCard(
+    issue: string,
+    cardNumber: string,
+    year: number,
+    future: boolean,
+  ): Promise<Card> {
+    const user = this.cardsRepository.create({
+      issue,
+      cardNumber,
+      year,
+      future,
+    });
     return this.cardsRepository.save(user);
   }
 

@@ -90,18 +90,24 @@ export class EbayService implements OnModuleInit {
       throw new Error('card not found');
     }
 
-    const entitiesToSave: EbaySearchResult[] = [];
+    const entitiesToSave = [];
     ebaySearchResults.forEach((esr) => {
       delete esr.id;
-      entitiesToSave.push(
-        this.ebaySearchResultsRepository.create({
-          ...esr,
-          card: { id: card.id },
-        }),
-      );
+      entitiesToSave.push({
+        ...esr,
+        card: { id: card.id },
+      });
+
+      // entitiesToSave.push(
+      //   this.ebaySearchResultsRepository.create({
+      //     ...esr,
+      //     card: { id: card.id },
+      //   }),
+      // );
     });
 
-    return this.ebaySearchResultsRepository.save(entitiesToSave);
+    const newCards = this.ebaySearchResultsRepository.create(entitiesToSave);
+    return this.ebaySearchResultsRepository.save(newCards);
   }
 
   async onModuleInit() {}
@@ -127,19 +133,18 @@ export class EbayService implements OnModuleInit {
     limit: number = 10,
     daysLeft: number | null = null,
     maxPrice: number | null = null,
+    raw: boolean = false,
   ): Promise<Partial<EbaySearchResult>[]> {
-    const onlyGraded = true;
     const filterBuyingOptions = false;
 
     let url = `https://api.ebay.com/buy/browse/v1/item_summary/search?epid=${epid}&limit=${limit}`;
 
     const filters = [];
 
-    if (onlyGraded) {
+    if (!raw) {
       filters.push('conditionIds:{2750}');
     }
 
-    // If timeLeft is not null, sort by items ending soon
     if (filterBuyingOptions) {
       if (daysLeft !== null) {
         filters.push(`buyingOptions:{AUCTION}`);
@@ -173,51 +178,44 @@ export class EbayService implements OnModuleInit {
       // Filter and return items where title contains PSA and grade
       const searchResults: Partial<EbaySearchResult>[] = [];
 
-      items.forEach((item) => {
-        const itemId = item.itemId;
-        const title = item.title;
-        const shippingCost =
-          item.shippingOptions?.[0]?.shippingCost?.value || 'N/A';
-        const ebayUrl = item.itemWebUrl;
+      items
+        .filter((item) => !raw || item.conditionId !== '2750')
+        .filter((item) => item.itemGroupType != 'SELLER_DEFINED_VARIATIONS')
+        .filter((item) => {
+          const title: string = item.title.toLowerCase();
 
-        const psaGrade = this.extractPSAGradeFromTitle(item.title);
-        const gradingSource = psaGrade ? 'PSA' : null;
-        const grade = psaGrade;
+          return (
+            [
+              'reprint',
+              're-print',
+              'anniversary',
+              'archive',
+              'checklist',
+              'check list',
+              'check-list',
+            ].find((txt) => title.includes(txt)) === undefined
+          );
+        })
+        .forEach((item) => {
+          const itemId = item.itemId;
+          const title = item.title;
+          const shippingCost =
+            item.shippingOptions?.[0]?.shippingCost?.value || 'N/A';
+          const ebayUrl = item.itemWebUrl;
 
-        const listingTypes = item.buyingOptions;
+          const psaGrade = this.extractPSAGradeFromTitle(item.title);
+          const gradingSource = psaGrade ? 'PSA' : null;
+          const grade = psaGrade;
 
-        if (item.price?.value) {
-          // this item has a buy it now
-          const price = item.price.value;
-          const auctionEndTime = null;
-          searchResults.push({
-            itemId,
-            gradingSource,
-            title,
-            price,
-            auctionEndTime,
-            shippingCost,
-            grade,
-            ebayUrl,
-            epid,
-          });
-        }
+          const imageUrl = item.image?.imageUrl;
+          const legacyItemId = item.legacyItemId;
 
-        if (item.currentBidPrice && listingTypes.includes('AUCTION')) {
-          // this item has a auction
-          const price = item.currentBidPrice.value;
-          const auctionEndTime = item.itemEndDate; // Auction items have an `endTime`
+          const listingTypes = item.buyingOptions;
 
-          // Calculate today's date and add daysLeft to get the target date
-          const targetDate = new Date();
-          targetDate.setDate(targetDate.getDate() + daysLeft); // Add daysLeft to today's date
-          targetDate.setHours(23, 59, 59, 999);
-          // Parse the auctionEndTime to a Date object
-          const auctionEndDate = new Date(auctionEndTime);
-
-          // Check if the auction end time is within the range of today + daysLeft
-          if (auctionEndDate <= targetDate) {
-            console.log('adding auction');
+          if (item.price?.value) {
+            // this item has a buy it now
+            const price = item.price.value;
+            const auctionEndTime = null;
             searchResults.push({
               itemId,
               gradingSource,
@@ -228,10 +226,44 @@ export class EbayService implements OnModuleInit {
               grade,
               ebayUrl,
               epid,
+              raw,
+              imageUrl,
+              legacyItemId,
             });
           }
-        }
-      });
+
+          if (item.currentBidPrice && listingTypes.includes('AUCTION')) {
+            // this item has a auction
+            const price = item.currentBidPrice.value;
+            const auctionEndTime = item.itemEndDate; // Auction items have an `endTime`
+
+            // Calculate today's date and add daysLeft to get the target date
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() + daysLeft); // Add daysLeft to today's date
+            targetDate.setHours(23, 59, 59, 999);
+            // Parse the auctionEndTime to a Date object
+            const auctionEndDate = new Date(auctionEndTime);
+
+            // Check if the auction end time is within the range of today + daysLeft
+            if (auctionEndDate <= targetDate) {
+              console.log('adding auction');
+              searchResults.push({
+                itemId,
+                gradingSource,
+                title,
+                price,
+                auctionEndTime,
+                shippingCost,
+                grade,
+                ebayUrl,
+                epid,
+                raw,
+                imageUrl,
+                legacyItemId,
+              });
+            }
+          }
+        });
 
       return searchResults;
     } catch (e) {
@@ -245,6 +277,7 @@ export class EbayService implements OnModuleInit {
     limit: number = 10, // Default limit is 10 if not specified
     daysLeft: number | null = null, // Filter for items ending in the next 4 hours (can be null)
     maxPrice: number | null = null,
+    raw: boolean = false,
   ): Promise<Partial<EbaySearchResult>[]> {
     const accessToken = await this.getAccessToken();
 
@@ -266,6 +299,7 @@ export class EbayService implements OnModuleInit {
             limit,
             daysLeft,
             maxPrice,
+            raw,
           );
         }),
       );

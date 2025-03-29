@@ -27,7 +27,11 @@ export class EbayController {
     );
   }
 
-  async updateDeals(cards: Card[], searchResults: Partial<EbaySearchResult>[]) {
+  async updateDeals(
+    cards: Card[],
+    searchResults: Partial<EbaySearchResult>[],
+    updateType: (esr: EbaySearchResult) => boolean,
+  ) {
     const ebayResultsMap = searchResults.reduce((map, item) => {
       if (!map.has(item.epid)) {
         map.set(item.epid, []);
@@ -43,7 +47,9 @@ export class EbayController {
       const newDealIds = searchResults?.map((sr) => sr.itemId) ?? [];
 
       const existingDeals =
-        card.ebaySearchResults?.map((esr) => esr.itemId) ?? [];
+        card.ebaySearchResults
+          ?.filter((esr) => updateType(esr))
+          .map((esr) => esr.itemId) ?? [];
 
       const removedDeals = existingDeals.filter(
         (edId) => !newDealIds.includes(edId),
@@ -72,6 +78,7 @@ export class EbayController {
     @Body('limit') limit: number,
     @Body('daysLeft') daysLeft: string,
     @Body('maxPrice') maxPrice: string,
+    @Body('raw') raw: boolean,
   ) {
     const allCards = (await this.cardsService.findAll()).filter(
       (card) => card.epid && !card.owned && card.epid !== 'none',
@@ -84,12 +91,37 @@ export class EbayController {
       limit,
       parseInt(daysLeft),
       maxPrice === null ? null : parseInt(maxPrice),
+      raw,
     );
-    this.updateDeals(allCards, searchResults);
+    await this.updateDeals(allCards, searchResults, (esr) => !!esr.raw === raw);
+  }
+
+  @Post('loadPlayer')
+  async loadPlayer(
+    @Body('limit') limit: number,
+    @Body('daysLeft') daysLeft: string,
+    @Body('maxPrice') maxPrice: string,
+    @Body('raw') raw: boolean,
+    @Body('issue') issue: string,
+  ) {
+    const card = await this.cardsService.findByIssue(issue);
+    if (!card || !(card.epid && card.epid !== 'none')) {
+      console.log('not enough data found', JSON.stringify(card));
+      return;
+    }
+    const epids = [card.epid!];
+    const searchResults = await this.ebayService.searchFootballCards(
+      epids,
+      limit,
+      parseInt(daysLeft),
+      maxPrice === null ? null : parseInt(maxPrice),
+      raw,
+    );
+    await this.updateDeals([card], searchResults, (esr) => !!esr.raw === raw);
   }
 
   @Post('hideDeal')
   async hideDeal(@Query('id') id: number, @Query('hide') hide: number) {
-    return this.ebayService.setDealHide(id, hide);
+    return await this.ebayService.setDealHide(id, hide);
   }
 }

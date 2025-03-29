@@ -39,11 +39,20 @@ export class EbaySearchResult {
   @Column({ name: 'ebayUrl', type: 'varchar', length: 2000 })
   ebayUrl: string;
 
+  @Column({ name: 'imageUrl', type: 'varchar', length: 2000 })
+  imageUrl: string;
+
+  @Column({ name: 'legacyItemId', type: 'varchar', length: 255 })
+  legacyItemId: string;
+
   @Column({ name: 'epid' })
   epid: string;
 
   @Column({ name: 'hide', default: false })
   hide: number;
+
+  @Column({ name: 'raw', default: false })
+  raw: boolean;
 
   @Column({ name: 'auctionEndTime', nullable: true })
   auctionEndTime: string | null;

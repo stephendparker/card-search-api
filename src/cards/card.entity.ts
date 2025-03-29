@@ -46,6 +46,9 @@ export class Card {
   @Column({ name: 'owned' })
   owned: boolean = false;
 
+  @Column({ name: 'future' })
+  future: boolean = false;
+
   @Column({ nullable: true, type: 'float' }) // Allow null
   ungraded: number | null = null;
 

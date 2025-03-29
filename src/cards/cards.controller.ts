@@ -21,12 +21,19 @@ export class CardsController {
 
   @Post()
   async createCard(
-    @Body() createCardDto: { name: string; cardNumber: string; year: number },
+    @Body()
+    createCardDto: {
+      name: string;
+      cardNumber: string;
+      year: number;
+      future: boolean;
+    },
   ): Promise<Card> {
     return this.cardsService.createCard(
       createCardDto.name,
       createCardDto.cardNumber,
       createCardDto.year,
+      createCardDto.future,
     );
   }
 
