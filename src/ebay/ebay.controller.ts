@@ -76,8 +76,8 @@ export class EbayController {
   @Post('loadAuctions')
   async loadAuctions(
     @Body('limit') limit: number,
-    @Body('daysLeft') daysLeft: string,
-    @Body('maxPrice') maxPrice: string,
+    @Body('daysLeft') daysLeft: number,
+    @Body('maxPrice') maxPrice: number,
     @Body('raw') raw: boolean,
   ) {
     const allCards = (await this.cardsService.findAll()).filter(
@@ -89,8 +89,8 @@ export class EbayController {
     const searchResults = await this.ebayService.searchFootballCards(
       epids,
       limit,
-      parseInt(daysLeft),
-      maxPrice === null ? null : parseInt(maxPrice),
+      daysLeft,
+      maxPrice === null ? null : maxPrice,
       raw,
     );
     await this.updateDeals(allCards, searchResults, (esr) => !!esr.raw === raw);
@@ -99,8 +99,8 @@ export class EbayController {
   @Post('loadPlayer')
   async loadPlayer(
     @Body('limit') limit: number,
-    @Body('daysLeft') daysLeft: string,
-    @Body('maxPrice') maxPrice: string,
+    @Body('daysLeft') daysLeft: number,
+    @Body('maxPrice') maxPrice: number,
     @Body('raw') raw: boolean,
     @Body('issue') issue: string,
   ) {
@@ -113,8 +113,8 @@ export class EbayController {
     const searchResults = await this.ebayService.searchFootballCards(
       epids,
       limit,
-      parseInt(daysLeft),
-      maxPrice === null ? null : parseInt(maxPrice),
+      daysLeft,
+      maxPrice === null ? null : maxPrice,
       raw,
     );
     await this.updateDeals([card], searchResults, (esr) => !!esr.raw === raw);

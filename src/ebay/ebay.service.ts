@@ -246,7 +246,7 @@ export class EbayService implements OnModuleInit {
 
             // Check if the auction end time is within the range of today + daysLeft
             if (auctionEndDate <= targetDate) {
-              console.log('adding auction');
+              console.log('adding auction', { auctionEndDate, targetDate });
               searchResults.push({
                 itemId,
                 gradingSource,
